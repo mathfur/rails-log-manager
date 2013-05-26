@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
 
+import Manager
+
 main :: IO ()
-main = putStrLn("hello")
+main = parseLog "log/development.log"
