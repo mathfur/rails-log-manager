@@ -7,6 +7,7 @@ import Control.Monad.State
 
 import Parser
 import Type
+import Db
 
 exec :: FilePath -> RailsLogManager
 exec = (liftIO . readFile) >=> (mapM_ processLine . lines)
@@ -37,13 +38,10 @@ moveTo :: LogLocation -> RailsLogManager
 moveTo l = (put . LogState l . stack) =<< get
 
 parse_and_output :: RailsLogManager
-parse_and_output = (liftIO . save_to_db . convertToRailsLog . stack) =<< get
+parse_and_output = (liftIO . saveToDb . convertToRailsLog . stack) =<< get
 
 convertToRailsLog :: [String] -> RailsLog
 convertToRailsLog = concat . fmap parseLogLine
-
-save_to_db :: RailsLog -> IO ()
-save_to_db = print
 
 startPosition :: LogState
 startPosition = LogState Outside []
