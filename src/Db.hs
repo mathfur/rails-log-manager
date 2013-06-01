@@ -18,7 +18,7 @@ instance PersistField Side where
     isNullable _ = False
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistUpperCase|
-Action
+RAction
     controller String Maybe
     action String Maybe
     method String Maybe
@@ -27,7 +27,7 @@ Action
     deriving Show
 RLog
     content String
-    actionId ActionId
+    actionId RActionId
     deriving Show
 LogState
     side Side
