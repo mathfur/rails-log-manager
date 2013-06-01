@@ -2,18 +2,19 @@
 {-# OPTIONS_GHC -Wall #-}
 
 import Web.Scotty
-import Data.Monoid
 import Control.Monad.IO.Class
 import qualified Data.Text.Lazy as T
+import Database.Persist.Sqlite hiding (get)
+import Control.Applicative
 
 import Manager
 import Db
 
+main :: IO ()
 main = scotty 3000 $ do
      get "/" $ do
-         rs <- liftIO readFromDb'
-         html $ T.pack ("<table>" ++ (concat $ map (\e -> "<tr><td>" ++ e ++ "</td></tr>") rs) ++ "</table>")
-
-     post "/flush" $ do
-         liftIO $ parseLog "log/development.log"
-         html ""
+         rc <- liftIO $ (withSqliteConn "foo.db" . runSqlConn :: SqlPersist IO a -> IO a) $ do
+           runMigration migrateAll
+           processLog "log/development.log"
+           map (rLogContent . entityVal) <$> selectList [] []
+         html $ T.pack ("<table>" ++ (concat $ map (\e -> "<tr><td>" ++ e ++ "</td></tr>") rc) ++ "</table>")

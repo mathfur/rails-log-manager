@@ -1,6 +1,5 @@
 {-# Language TemplateHaskell, QuasiQuotes, FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
--- {-# OPTIONS_GHC -Wall #-}
 
 module Parser where
 
