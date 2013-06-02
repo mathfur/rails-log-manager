@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                rails-log-manager
-version:             0.0.0.0
+version:             0.0.0.1
 synopsis:            rails log manager
 description:         rails log manager
 homepage:            https://github.com/mathfur/rails-log-manager
