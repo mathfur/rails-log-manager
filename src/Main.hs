@@ -18,11 +18,12 @@ import Db
 main :: IO ()
 main = scotty 3000 $ do
      get "/" $ do
+         q <- param "q"
          rlogs <- liftIO $ (withSqliteConn "foo.db" . runSqlConn :: SqlPersist IO a -> IO a) $ do
            runMigration migrateAll
            processLog "log/development.log"
            rlogs <- selectList [] []
-           mapM getActionById rlogs
+           mapM getActionById $ filter (haveTextInContent q) rlogs
          html $ renderMarkup $ template (rlogs :: [[T.Text]]) ""
            where
              template :: [[T.Text]] -> T.Text -> Markup
@@ -36,6 +37,9 @@ main = scotty 3000 $ do
                                       $forall t <- ts
                                         <td>#{t}
                             |]
+
+             haveTextInContent :: T.Text -> Entity RLog -> Bool
+             haveTextInContent q rlog = T.isInfixOf q ((T.pack . rLogContent . entityVal) rlog)
 
              getActionById :: Entity RLog -> SqlPersist IO [T.Text]
              getActionById rlog = do
