@@ -11,12 +11,16 @@ import qualified Data.Text.Lazy as T
 import Database.Persist.Sqlite hiding (get)
 import Text.Blaze.Internal
 import Data.Maybe
+import Network.Wai.Middleware.RequestLogger
+import Network.Wai.Middleware.Static
 
 import Manager
 import Db
 
 main :: IO ()
 main = scotty 3000 $ do
+     middleware logStdoutDev
+     middleware $ staticPolicy $ addBase "static"
      get "/" $ do
          q <- param "q"
          rlogs <- liftIO $ (withSqliteConn "foo.db" . runSqlConn :: SqlPersist IO a -> IO a) $ do
@@ -30,8 +34,18 @@ main = scotty 3000 $ do
              template tss = [hamlet|
                             $doctype 5
                             <html>
+                              <head>
+                                <title>Rails Log Manager
+                                <script src="js/bootstrap.js">
+                                <link href="css/bootstrap.css" rel="stylesheet" type="text/css">
+                                <link href="css/bootstrap-responsive.css" rel="stylesheet" type="text/css">
                               <body>
-                                <table>
+                                <div class="navbar navbar-fixed-top">
+                                  <div class="navbar-inner">
+                                    <div class="container">
+                                      <ul class="nav pull-left">
+                                        <a class="brand">Rails-Log-Manager
+                                <table class="table table-striped table-bordered table-hover">
                                   $forall ts <- tss
                                     <tr>
                                       $forall t <- ts
