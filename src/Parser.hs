@@ -5,6 +5,7 @@ module Parser where
 
 import Text.Peggy
 import Type
+import Data.List
 
 [peggy|
 nums :: [Int]
@@ -19,25 +20,45 @@ word :: String
 ident ::: String
   = [a-zA-Z0-9_-]+ { $1 }
 
+controller_name :: String
+  = (word "::")* word { concat (intersperse "::" $1) ++ $2 }
+
+ip ::: String
+  = [0-9]+ "." [0-9]+ "." [0-9]+ "." [0-9]+ { $1 ++ "." ++ $2 ++ "." ++ $3 ++ "." ++ $4 }
+
+date ::: String
+  = [0-9]+ "-" [0-9]+ "-" [0-9]+ { $1 ++ "-" ++ $2 ++ "-" ++ $3 }
+
+time ::: String
+  = [0-9]+ ":" [0-9]+ ":" [0-9]+ { $1 ++ ":" ++ $2 ++ ":" ++ $3 }
+
+-- pair :: (String, String)
+-- pair = undefined
+-- 
+-- hash :: [(String, String)]
+-- hash = '{' ((pair ',')* pair)* '}' { map (\a b -> a ++ [b]) $1 }
+
 -------------------------------------------------
 
--- Processing AccountController#login [POST]
+-- Processing Bar::FooController#export (for 127.0.0.1 at 2000-00-00 13:27:31) [GET]
 start_line :: [(String, String)]
-  = "Processing" word "#" word "[" word "]" { [("controller", $1), ("action", $2), ("method", $3)] }
+  = "Processing" controller_name '#' word "(for" ip "at" date time ') [' word ']'
+    { [("controller", $1), ("action", $2), ("ip", $3), ("datetime", $4 ++ $5), ("method", $6)] }
 
--- Parameters: {"action"=>"login",  "authenticity_token"=>"[FILTERED]", "username"=>"[FILTERED]",  "controller"=>"account",  "password"=>"[FILTERED]", "login"=>"ログイン &#187;"}
+-- Parameters: {"action"=>"export",  "cont..
 parameters_line :: [(String, String)]
-  = "Parameters:" [^\n]+ { [("params", $1)] }
+  = "Parameters:" [^\n]+ { [("parameters", $1)] }
 
--- Completed 200 OK in 1648ms (Views: 568.2ms | ActiveRecord: 3.2ms)
+-- Completed in 23ms (View: 1, DB: 3) | 403 Forbidden [http://localhost/foo/bar]
 end_line :: [(String, String)]
-  = "Completed" [0-9]+ ident "in" [0-9]+ 'ms' { [("code", $1), ("response_name", $2), ("time", $3)] }
+  = "Completed in" [0-9]+ 'ms' "(View:" [0-9]+ ", DB:" [0-9]+ ')' "|" [0-9]+ ident '[' [^\]]+ ']'
+    { [("time", $1), ("view_time", $2), ("db_time", $3), ("response", $4 ++ $5), ("url", $6)] }
 
 other_line :: [(String, String)]
   = (.+) { [("other", $1)] }
 
 log_line :: LogLine
-  = start_line / parameters_line / other_line / end_line
+  = start_line / parameters_line / end_line / other_line
 
 |]
 

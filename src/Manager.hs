@@ -37,7 +37,8 @@ processLine line = do
             put $ LogState (logStateSide s) []
 
         moveTo :: Side -> RailsLogManager
-        moveTo l = (put . LogState l . logStateStack) =<< get
+        moveTo l = do
+          (put . LogState l . logStateStack) =<< get
 
         parseAndOutput :: RailsLogManager
         parseAndOutput = (lift . saveToDb . convertToRailsLog . logStateStack) =<< get
@@ -47,9 +48,19 @@ processLine line = do
 
             saveToDb :: RailsLog -> SqlPersist IO ()
             saveToDb rails_log = do
-                actionId <- insert $ RAction (lookup "controller" rails_log) (lookup "action" rails_log) (lookup "method" rails_log) (lookup "code" rails_log) (lookup "time" rails_log)
+                actionId <- insert $ RAction
+                                       (lookup "controller" rails_log)
+                                       (lookup "action" rails_log)
+                                       (lookup "ip" rails_log)
+                                       (lookup "datetime" rails_log)
+                                       (lookup "method" rails_log)
+                                       (lookup "parameters" rails_log)
+                                       (lookup "time" rails_log)
+                                       (lookup "view_time" rails_log)
+                                       (lookup "db_time" rails_log)
+                                       (lookup "response" rails_log)
+                                       (lookup "url" rails_log)
                 mapM_ insert $ map (((flip RLog) actionId) . snd) $ filter ((flip (==) "other") . fst) rails_log
-
 ------------------------------------------------------
 
 processLines :: FilePath -> RailsLogManager

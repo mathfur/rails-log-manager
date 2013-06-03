@@ -21,9 +21,15 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistUpperCase|
 RAction
     controller String Maybe
     action String Maybe
+    ip String Maybe
+    datetime String Maybe
     method String Maybe
-    code String Maybe
+    parameters String Maybe
     time String Maybe
+    view_time String Maybe
+    db_time String Maybe
+    response String Maybe
+    url String Maybe
     deriving Show
 RLog
     content String
