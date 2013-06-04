@@ -61,5 +61,13 @@ main = scotty 3000 $ do
                case first of
                  Just v -> do
                    let v' = entityVal v
-                   return $ (map (T.pack . fromMaybe "(nil)") $ [rActionController v', rActionAction v']) ++ [T.pack $ rLogContent $ entityVal $ rlog]
+                   return $ (map (T.pack . fromMaybe "(nil)") $
+                              [
+                                rActionController v',
+                                rActionAction v',
+                                rActionMethod v',
+                                rActionResponse v',
+                                rActionDatetime v'
+                              ]
+                            ) ++ [T.pack $ rLogContent $ entityVal $ rlog]
                  Nothing -> return []
