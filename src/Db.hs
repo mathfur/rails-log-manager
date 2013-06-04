@@ -37,6 +37,7 @@ RLog
     deriving Show
 LogState
     side Side
+    pos Int
     stack [String]
     deriving Show
 |]

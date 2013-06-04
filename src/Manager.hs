@@ -7,6 +7,7 @@ import Data.Maybe
 import Control.Monad.State
 import Control.Applicative
 import Database.Persist.Sqlite hiding (get)
+import System.IO
 
 import Parser
 import Type
@@ -29,16 +30,17 @@ processLine line = do
         push :: String -> RailsLogManager
         push newline = do
             s <- get
-            put $ LogState (logStateSide s) (logStateStack s ++ [newline])
+            put $ LogState (logStateSide s) (logStatePos s) (logStateStack s ++ [newline])
 
         clear :: RailsLogManager
         clear = do
             s <- get
-            put $ LogState (logStateSide s) []
+            put $ LogState (logStateSide s) (logStatePos s) []
 
         moveTo :: Side -> RailsLogManager
         moveTo l = do
-          (put . LogState l . logStateStack) =<< get
+            s <- get
+            put $ LogState l (logStatePos s) (logStateStack s)
 
         parseAndOutput :: RailsLogManager
         parseAndOutput = (lift . saveToDb . convertToRailsLog . logStateStack) =<< get
@@ -64,17 +66,32 @@ processLine line = do
 ------------------------------------------------------
 
 processLines :: FilePath -> RailsLogManager
-processLines = (liftIO . readFile) >=> (mapM_ processLine . lines)
+processLines path = do
+    s <- get
+    cnt <- liftIO $ do
+      handle <- openFile path ReadMode
+      hSeek handle AbsoluteSeek $ toInteger $ logStatePos s
+      hGetContents handle
+    mapM_ processLine $ lines cnt
+    incPos $ length cnt
+    return ()
+  where
+    incPos :: Int -> RailsLogManager
+    incPos pos = do
+        s <- get
+        put $ LogState (logStateSide s) ((logStatePos s) + pos) (logStateStack s)
 
 processLog :: FilePath -> SqlPersist IO ()
 processLog fname = loadState >>= (execStateT $ processLines fname) >>= saveState
   where
     loadState :: SqlPersist IO LogState
     loadState = do
-      (fromMaybe startPos . listToMaybe . map entityVal) <$> selectList [] []
+      arr <- selectList [] []
+      mapM_ delete $ map entityKey arr
+      return $ (fromMaybe startPos . listToMaybe . map entityVal) arr
         where
           startPos :: LogState
-          startPos = LogState Outside []
+          startPos = LogState Outside 0 []
 
     saveState :: LogState -> SqlPersist IO ()
     saveState s = insert s >> return ()
