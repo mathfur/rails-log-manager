@@ -17,6 +17,9 @@ import Network.Wai.Middleware.Static
 import Manager
 import Db
 
+max_records :: Int
+max_records = 1000
+
 main :: IO ()
 main = scotty 3000 $ do
      middleware logStdoutDev
@@ -27,8 +30,8 @@ main = scotty 3000 $ do
            runMigration migrateAll
            processLog "log/development.log"
            rlogs <- selectList [] []
-           mapM getActionById $ filter (haveTextInContent q) rlogs
-         html $ renderMarkup $ template (rlogs :: [[T.Text]]) ""
+           mapM getActionById  $ filter (haveTextInContent q) rlogs
+         html $ renderMarkup $ template ((take max_records rlogs) :: [[T.Text]]) ""
            where
              template :: [[T.Text]] -> T.Text -> Markup
              template tss = [hamlet|
