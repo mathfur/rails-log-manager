@@ -26,12 +26,16 @@ main = scotty 3000 $ do
      middleware $ staticPolicy $ addBase "static"
      get "/" $ do
          q <- param "q"
+         controller_cond <- param "controller"
+         action_cond <- param "action"
+         method_cond <- param "method"
          rlogs <- liftIO $ (withSqliteConn "foo.db" . runSqlConn :: SqlPersist IO a -> IO a) $ do
            runMigration migrateAll
            processLog "log/development.log"
            rlogs <- selectList [] []
-           mapM getActionById  $ filter (haveTextInContent q) rlogs
-         html $ renderMarkup $ template ((take max_records rlogs) :: [[T.Text]]) ""
+           mapM getActionById  $ filter (haveTextInContent q)  rlogs
+         let rlogs' = take max_records $ filter (haveTextInMethod method_cond) $ filter (haveTextInAction action_cond) $ filter (haveTextInController controller_cond) rlogs
+         html $ renderMarkup $ template (rlogs' :: [[T.Text]]) ""
            where
              template :: [[T.Text]] -> T.Text -> Markup
              template tss = [hamlet|
@@ -56,7 +60,17 @@ main = scotty 3000 $ do
                             |]
 
              haveTextInContent :: T.Text -> Entity RLog -> Bool
-             haveTextInContent q rlog = T.isInfixOf q ((T.pack . rLogContent . entityVal) rlog)
+             haveTextInContent q rlog = T.isInfixOf q ((T.toLower . T.pack . rLogContent . entityVal) rlog)
+
+             -- TODO: Refactoring
+             haveTextInController :: T.Text -> [T.Text] -> Bool
+             haveTextInController q rlog = T.isInfixOf q (T.toLower $ rlog !! 0)
+
+             haveTextInAction :: T.Text -> [T.Text] -> Bool
+             haveTextInAction q rlog = T.isInfixOf q (T.toLower $ rlog !! 1)
+
+             haveTextInMethod :: T.Text -> [T.Text] -> Bool
+             haveTextInMethod q rlog = T.isInfixOf q (T.toLower $ rlog !! 2)
 
              getActionById :: Entity RLog -> SqlPersist IO [T.Text]
              getActionById rlog = do
